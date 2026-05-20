@@ -1,0 +1,18 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# DVC cache
+.dvc/cache/
+
+# VS Code
+.vscode/
+
+# Data
+data/
