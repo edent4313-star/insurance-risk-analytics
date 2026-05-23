@@ -1,5 +1,11 @@
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, mean_squared_error
 
 from sklearn.ensemble import (
     RandomForestClassifier,
@@ -130,3 +136,24 @@ def train_claim_regressor(X, y):
         predictions,
         mae
     )
+
+def train_severity_model(X, y_reg):
+    """Trains model to predict HOW MUCH (only for rows where claims > 0)."""
+    # Filter for only positive claims
+    mask = y_reg > 0
+    X_sub = X[mask]
+    y_sub = y_reg[mask]
+
+    if len(y_sub) < 10:
+        return None, "Not enough claim data to train severity model.", None, None, None, None
+
+    X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=0.2, random_state=42)
+    
+    model = RandomForestRegressor(n_estimators=100, max_depth=8, random_state=42)
+    model.fit(X_train, y_train)
+    
+    preds = model.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, preds))
+    r2 = r2_score(y_test, preds)
+    
+    return (model, X_test, y_test, preds, rmse, r2)
