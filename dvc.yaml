@@ -20,6 +20,7 @@ stages:
     deps:
       - models/model.pkl
       - src/evaluate.py
+      - src/evaluate.py
 stages:
   preprocess:
     cmd: python src/preprocessing.py
