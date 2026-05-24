@@ -49,3 +49,5 @@ dvc repro
 
 ### Run Tests
 pytest
+pytest
+pytest
