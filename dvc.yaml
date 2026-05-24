@@ -20,3 +20,25 @@ stages:
     deps:
       - models/model.pkl
       - src/evaluate.py
+stages:
+  preprocess:
+    cmd: python src/preprocessing.py
+    deps:
+      - data/raw/data.csv
+      - src/preprocessing.py
+    outs:
+      - data/processed/processed.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - data/processed/processed.csv
+      - src/train.py
+    outs:
+      - models/model.pkl
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - models/model.pkl
+      - src/evaluate.py
