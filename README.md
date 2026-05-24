@@ -30,6 +30,22 @@ risk-based pricing strategies.
 - tests/
 - reports/
 
-## Author
+## DVC
 
-Your Name
+### Clone Repository
+git clone <repo-url>
+
+### Create Environment
+python -m venv .venv
+
+### Install Dependencies
+pip install -r requirements.txt
+
+### Pull DVC Data
+dvc pull
+
+### Run Pipeline
+dvc repro
+
+### Run Tests
+pytest
