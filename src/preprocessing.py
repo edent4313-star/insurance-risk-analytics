@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from scipy import stats
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 
 def calculate_loss_ratio(df):
 
@@ -181,3 +183,70 @@ def perform_anova(df, group_col, target_col):
     f_stat, p_value = stats.f_oneway(*groups)
     
     return f_stat, p_value
+def clean_and_engineer_data(df: pd.DataFrame) -> pd.DataFrame:
+    processed_df = df.copy()
+    processed_df.columns = processed_df.columns.str.strip()
+
+    # SAFE CLEANING: Guard and preserve numeric columns
+    if 'TotalClaims' in processed_df.columns:
+        # Only run string adjustments if the column was read as text/object
+        if processed_df['TotalClaims'].dtype == 'object':
+            processed_df['TotalClaims'] = (
+                processed_df['TotalClaims']
+                .astype(str)
+                .str.replace(r'[^\d\.]', '', regex=True)
+            )
+            processed_df['TotalClaims'] = pd.to_numeric(processed_df['TotalClaims'], errors='coerce')
+        
+        # Take absolute value for negative accounting indicators and fill true NaNs
+        processed_df['TotalClaims'] = processed_df['TotalClaims'].abs().fillna(0.0)
+
+    # Re-establish feature targets
+    processed_df['ClaimOccurred'] = (processed_df['TotalClaims'] > 0).astype(int)
+    return processed_df
+
+def prepare_and_split_data(df: pd.DataFrame, task_type: str = "severity_regression"):
+    """
+    Slices population subsets, separates splits 80:20, and applies 
+    leakage-free ordinal transformations onto split sets with strict NaN checks.
+    """
+    features = [
+        'VehicleAge', 'CustomValueEstimate', 'SumInsured', 'ExcessSelected',
+        'AlarmImmobiliser', 'TrackingDevice', 'NewVehicle', 'Gender', 
+        'MaritalStatus', 'VehicleType', 'Product', 'CoverCategory'
+    ]
+    features = [f for f in features if f in df.columns]
+
+    if task_type == "severity_regression":
+        # Severity targets: Filter strictly for active historical claim rows
+        working_df = df[df['TotalClaims'] > 0].copy()
+        target_col = 'TotalClaims'
+    else:
+        # Full portfolio split for the Frequency model
+        working_df = df.copy()
+        target_col = 'ClaimOccurred'
+
+    X = working_df[features].copy()
+    y = working_df[target_col]
+
+    # Clean text columns before splitting to avoid object formatting issues
+    cat_cols = X.select_dtypes(include=['object']).columns
+    for col in cat_cols:
+        X[col] = X[col].astype(str).fillna("Missing")
+
+    # Split dataset BEFORE fitting encoders to stop Data Leakage
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Ordinal transform categorical string text values safely
+    if len(cat_cols) > 0:
+        encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
+        X_train[cat_cols] = encoder.fit_transform(X_train[cat_cols])
+        X_test[cat_cols] = encoder.transform(X_test[cat_cols])
+
+    # GUARANTEE NO NaNs RE-EMERGE IN TRAINING MATRICES
+    X_train = X_train.fillna(0)
+    X_test = X_test.fillna(0)
+
+    return X_train, X_test, y_train, y_test
