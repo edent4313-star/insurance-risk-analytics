@@ -1,11 +1,18 @@
+from operator import le
+
+from pyparsing import col
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, mean_squared_error
+import logging
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from xgboost import XGBClassifier, XGBRegressor
+
 
 from sklearn.ensemble import (
     RandomForestClassifier,
@@ -157,3 +164,42 @@ def train_severity_model(X, y_reg):
     r2 = r2_score(y_test, preds)
     
     return (model, X_test, y_test, preds, rmse, r2)
+
+
+
+
+
+def train_severity_models(X_train, y_train):
+    """Fits Linear Regression, Random Forest, and XGBoost for severity estimation."""
+    models = {
+        "Linear Regression": LinearRegression(),
+        "Random Forest Regressor": RandomForestRegressor(
+            n_estimators=100, max_depth=10, random_state=42, n_jobs=-1
+        ),
+        "XGBoost Regressor": XGBRegressor(
+            n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42
+        ),
+    }
+    for model in models.values():
+        model.fit(X_train, y_train)
+    return models
+
+
+def train_frequency_models(X_train, y_train):
+    """Fits Logistic Regression, Random Forest, and XGBoost for probability of claims."""
+    models = {
+        "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
+        "Random Forest Classifier": RandomForestClassifier(
+            n_estimators=100, max_depth=10, random_state=42, n_jobs=-1
+        ),
+        "XGBoost Classifier": XGBClassifier(
+            n_estimators=100,
+            max_depth=6,
+            learning_rate=0.1,
+            random_state=42,
+            eval_metric="logloss",
+        ),
+    }
+    for model in models.values():
+        model.fit(X_train, y_train)
+    return models
